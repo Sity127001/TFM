@@ -433,6 +433,8 @@ M5-2 & Defensa pública & 26-jun & Entrega al tribunal & Exposición pública & 
 \caption{Resumen de la planificación del proyecto} \\
 \end{longtable}
 
+
+
 En la Figura 1.1 se representa la planificación del proyecto mediante un diagrama de Gantt. Los códigos de cada fase y subtarea (M1, M2, M3-1…) coinciden con los utilizados en la Tabla 1.1, permitiendo visualizar de forma integrada la duración y la secuencia lógica de las actividades.
 
 \begin{figure}[h!]
@@ -526,38 +528,33 @@ artificial.
 
 \chapter{Estado del arte}
 
-Aunque existen numerosos estudios que analizan modelos basados en
-boosting, redes LSTM o técnicas de reconciliación jerárquica de forma
-independiente, no es habitual encontrar trabajos que integren estos
-enfoques dentro de un mismo marco metodológico. Este hecho justifica la
-relevancia del presente trabajo, que propone una comparación entre
-modelos basados en árboles y redes LSTM, incorporando técnicas de
-reconciliación jerárquica mediante MinT e interpretabilidad mediante
-SHAP.
+En este capítulo se revisan los principales enfoques utilizados en la
+predicción de demanda en retail, así como los modelos más relevantes en
+el contexto de series temporales jerárquicas.
+
+\section{Predicción de demanda en retail: problemática y enfoques clásicos}
 
 La predicción de demanda en retail ha sido ampliamente estudiada debido
 a su impacto en la planificación de inventarios, la gestión logística y
 la toma de decisiones. Estos entornos presentan una elevada complejidad
 estructural: miles de series temporales interrelacionadas, múltiples
 niveles jerárquicos, estacionalidad, efectos de calendario y variaciones
-derivadas de promociones o cambios de precio (\cite{hyndman2021}). 
-Este contexto ha favorecido el uso de modelos capaces de manejar
-grandes volúmenes de datos y capturar relaciones no lineales.
+derivadas de promociones o cambios de precio (\cite{hyndman2021}).
 
-El dataset M5 Forecasting -- Walmart (\cite{makridakis2021})
-constituye un benchmark relevante por su estructura jerárquica profunda,
-granularidad diaria y diversidad de variables explicativas, permitiendo
-comparar modelos estadísticos y de machine learning bajo un mismo marco.
-
-\section{Predicción de demanda en retail: problemática y enfoques clásicos}
 
 La demanda en retail está influida por múltiples factores simultáneos:
 estacionalidad, tendencias, eventos, promociones, variaciones de precio
 y diferencias entre tiendas o regiones, tal como se observa en distintos
-enfoques de modelización de demanda\hl{.} La presencia de miles de
+enfoques de modelización de demanda. La presencia de miles de
 series con comportamientos heterogéneos ha impulsado el desarrollo de
 modelos globales, capaces de aprender patrones compartidos entre
 productos y tiendas (\cite{salinas2017}).
+
+En este contexto, aunque existen numerosos estudios que analizan
+modelos basados en boosting, redes LSTM o técnicas de reconciliación
+jerárquica de forma independiente, no es habitual encontrar trabajos que
+integren estos enfoques dentro de un mismo marco metodológico. Este hecho
+justifica la relevancia del presente trabajo.
 
 Los métodos univariantes como ARIMA o ETS han sido ampliamente
 utilizados, pero presentan limitaciones al abordar estructuras
@@ -565,30 +562,30 @@ jerárquicas complejas y múltiples variables explicativas (\cite{hyndman2021}).
 limitación ha favorecido la adopción de modelos más flexibles y
 escalables.
 
-\emph{\textbf{\hl{Para contextualizar esta transición, es necesario
+Para contextualizar esta transición, es necesario
 detallar brevemente el funcionamiento de los modelos clásicos. ARIMA
 modela la serie temporal como una combinación lineal de tres
 componentes: (i) un término autorregresivo (AR) basado en rezagos de la
 propia serie, (ii) un término de diferenciación (I) que busca garantizar
 estacionariedad y (iii) un componente de medias móviles (MA) que
 incorpora errores pasados. Este enfoque asume relaciones lineales y una
-estructura temporal relativamente simple.}}}
+estructura temporal relativamente simple.
 
-\emph{\textbf{\hl{SARIMA extiende ARIMA incorporando términos
+SARIMA extiende ARIMA incorporando términos
 estacionales adicionales (AR, I y MA estacionales), lo que permite
 capturar patrones repetitivos como los semanales o mensuales. Sin
 embargo, ambos modelos presentan limitaciones importantes: requieren
 estacionariedad, no integran de forma natural múltiples variables
 explicativas, no capturan relaciones no lineales y escalan mal cuando se
-trabaja con miles de series simultáneamente.}}}
+trabaja con miles de series simultáneamente.
 
-\emph{\textbf{\hl{Estas limitaciones motivaron la adopción de modelos
+Estas limitaciones motivaron la adopción de modelos
 más flexibles y escalables, como los métodos de gradient boosting y las
 redes LSTM, que se desarrollan en las subsecciones siguientes. En
 particular, estos enfoques permiten modelar relaciones no lineales,
 incorporar múltiples variables explicativas y escalar de forma eficiente
 a conjuntos de datos con un gran número de series temporales, superando
-algunas de las restricciones inherentes a los modelos clásicos.}}}
+algunas de las restricciones inherentes a los modelos clásicos.
 
 \subsection{Modelos de Gradient Boosting para forecasting}
 
@@ -604,30 +601,30 @@ pueden ofrecer un rendimiento competitivo frente a modelos más complejos
 como las redes neuronales recurrentes (\cite{hewamalage2021}). Esto
 respalda su uso como base en el presente trabajo.
 
-\emph{\textbf{\hl{Desde un punto de vista técnico, los modelos de
+Desde un punto de vista técnico, los modelos de
 gradient boosting construyen árboles de decisión de manera secuencial:
 cada nuevo árbol se entrena para corregir los errores residuales del
 árbol anterior. Este proceso iterativo permite capturar relaciones no
 lineales y manejar interacciones complejas entre variables sin necesidad
-de especificarlas explícitamente.}}}
+de especificarlas explícitamente.
 
-\emph{\textbf{\hl{Este enfoque se basa en un esquema de aprendizaje
+Este enfoque se basa en un esquema de aprendizaje
 aditivo, en el que cada nuevo modelo se centra en corregir los errores
 acumulados, optimizando de forma iterativa una función de pérdida
-definida sobre el conjunto de entrenamiento.}}}
+definida sobre el conjunto de entrenamiento.
 
-\emph{\textbf{\hl{Modelos como XGBoost y LightGBM incorporan técnicas
+Modelos como XGBoost y LightGBM incorporan técnicas
 avanzadas de regularización, manejo eficiente de memoria, histogramas
 para acelerar la búsqueda de divisiones y estrategias de reducción del
 sobreajuste. Estas características los hacen especialmente adecuados
 para problemas de forecasting con grandes volúmenes de datos, múltiples
-variables explicativas y estructuras jerárquicas profundas.}}}
+variables explicativas y estructuras jerárquicas profundas.
 
-\emph{\textbf{\hl{Su principal limitación es que no modelan
+Su principal limitación es que no modelan
 explícitamente la dependencia temporal de largo plazo, ya que trabajan
 sobre features tabulares generadas manualmente (lags, ventanas,
 calendarios). Esto ha impulsado el uso de modelos secuenciales como las
-LSTM.}}}
+LSTM.
 
 \subsection{Redes LSTM y modelos profundos para predicción de demanda}
 
@@ -639,25 +636,25 @@ dependencias temporales complejas y patrones de largo plazo en las
 series, reduciendo la necesidad de ingeniería manual de variables basada
 en retardos.
 
-\emph{\textbf{\hl{Las LSTM incorporan una arquitectura basada en
+Las LSTM incorporan una arquitectura basada en
 ``celdas de memoria'' y tres puertas (entrada, olvido y salida) que
 regulan qué información se mantiene, cuál se descarta y cuál se
 transmite a pasos futuros. Esta estructura permite mitigar el problema
 del desvanecimiento del gradiente y facilita el aprendizaje de patrones
-temporales complejos.}}}
+temporales complejos.
 
-\emph{\textbf{\hl{A pesar de estas ventajas, presentan limitaciones
+A pesar de estas ventajas, presentan limitaciones
 relevantes: requieren grandes volúmenes de datos limpios, son sensibles
 a la configuración de hiperparámetros, tienen un coste computacional
 elevado y ofrecen menor interpretabilidad que los modelos basados en
 árboles. En la competición M5, su rendimiento fue inferior al de los
 modelos boosting, lo que ha generado debate sobre su aplicabilidad en
-entornos productivos.}}}
+entornos productivos.
 
-\emph{\textbf{\hl{Su inclusión en este trabajo permite comparar enfoques
+Su inclusión en este trabajo permite comparar enfoques
 tabulares y secuenciales bajo un mismo marco metodológico, evaluando no
 solo la precisión, sino también la eficiencia computacional y la
-interpretabilidad.}}}
+interpretabilidad.
 
 \section{Series temporales jerárquicas y reconciliación}
 
@@ -694,31 +691,31 @@ evaluar la estabilidad del modelo. En este trabajo se aplica sobre las
 predicciones base, dado que la reconciliación constituye un ajuste
 posterior.
 
-\emph{\textbf{\hl{Además de su utilidad técnica, la interpretabilidad
+Además de su utilidad técnica, la interpretabilidad
 desempeña un papel fundamental en la adopción real de modelos de
 forecasting dentro de organizaciones retail. En estos entornos, los
 equipos de negocio necesitan comprender por qué un modelo predice un
 aumento o disminución de la demanda, especialmente cuando las decisiones
-afectan a inventario, promociones o asignación de recursos.}}}
+afectan a inventario, promociones o asignación de recursos.
 
-\emph{\textbf{\hl{Los valores SHAP permiten identificar qué variables
+Los valores SHAP permiten identificar qué variables
 impulsan la predicción en cada instante, facilitando la detección de
 patrones relevantes como efectos de precio, estacionalidad o impacto de
 promociones. Esta información puede emplearse para diseñar campañas
 comerciales más efectivas, ajustar estrategias de pricing o priorizar
-productos con alta sensibilidad a determinados factores.}}}
+productos con alta sensibilidad a determinados factores.
 
-\emph{\textbf{Asimismo, SHAP favorece la comunicación entre perfiles
+Asimismo, SHAP favorece la comunicación entre perfiles
 técnicos y no técnicos, reduciendo la percepción de ``caja negra''
 asociada a modelos complejos. Esto incrementa la confianza en el sistema
 de forecasting y facilita su integración en procesos de toma de
-decisiones operativas y estratégicas.}}
+decisiones operativas y estratégicas.
 
-\emph{\textbf{En entornos retail, donde las decisiones deben
+En entornos retail, donde las decisiones deben
 justificarse ante múltiples áreas, la interpretabilidad resulta
 especialmente relevante para garantizar la adopción efectiva de los
 modelos y asegurar que las predicciones puedan ser comprendidas,
-validadas y utilizadas en la práctica.}}
+validadas y utilizadas en la práctica.
 
 \section{La competición M5 Forecasting y trabajos relacionados}
 
@@ -730,42 +727,45 @@ algunos en reconciliación jerárquica, no es habitual encontrar un
 enfoque que integre estos elementos en un mismo pipeline orientado a la
 comparación sistemática.
 
-\emph{\textbf{\hl{Las soluciones mejor posicionadas compartieron varios
+Las soluciones mejor posicionadas compartieron varios
 elementos clave: (i) el uso de modelos globales entrenados sobre todas
 las series simultáneamente, lo que permitió capturar patrones comunes
 entre productos y tiendas; (ii) un feature engineering muy intensivo,
 incluyendo lags, medias móviles, indicadores de calendario, variables de
 precio y variables derivadas de eventos; y (iii) una optimización
 exhaustiva de hiperparámetros mediante técnicas como grid search o
-Bayesian optimization.}}}
+Bayesian optimization.
 
-\emph{\textbf{\hl{El equipo ganador (1st place), según la documentación oficial de Kaggle, utilizó un modelo LightGBM global con un conjunto de más de 300 variables derivadas y obtuvo un WRMSSE de 0.520. El segundo y tercer clasificado también emplearon modelos boosting (LightGBM o CatBoost), con WRMSSE en rangos muy próximos al ganador ($\sim$0.52-0.53), lo que evidencia que las diferencias entre las mejores soluciones fueron mínimas y dependieron principalmente de ajustes finos en la ingeniería de características.}}}
+El equipo ganador (1st place), según la documentación oficial de Kaggle, utilizó un modelo LightGBM global con un conjunto de más de 300 variables derivadas y obtuvo un WRMSSE de 0.520. El segundo y tercer clasificado también emplearon modelos boosting (LightGBM o CatBoost), con WRMSSE en rangos muy próximos al ganador ($\sim$0.52-0.53), lo que evidencia que las diferencias entre las mejores soluciones fueron mínimas y dependieron principalmente de ajustes finos en la ingeniería de características.
 
-\emph{\textbf{\hl{El análisis del repositorio oficial de la competición
+El análisis del repositorio oficial de la competición
 muestra que las redes neuronales profundas, incluidas las LSTM,
 obtuvieron resultados inferiores en la mayoría de los casos, debido a su
 mayor complejidad, sensibilidad al preprocesado y dificultad para
 capturar patrones idiosincráticos en miles de series cortas. Este
 comportamiento coincide con los hallazgos del paper oficial de la M5,
 que destaca el dominio de los modelos boosting en contextos de
-forecasting retail con estructuras jerárquicas profundas.}}}
+forecasting retail con estructuras jerárquicas profundas.
 
-\emph{\textbf{A continuación, se presenta un resumen estructurado de las
+A continuación, se presenta un resumen estructurado de las
 soluciones mejor clasificadas en la competición, incluyendo sus
 principales características y métricas, que servirán como referencia
-comparativa para los experimentos desarrollados en este trabajo (Tabla 2).}}
+comparativa para los experimentos desarrollados en este trabajo (Tabla 2.1).
 
 \begin{longtable}{p{1.6cm} !{\vrule width 0.1pt} p{2.4cm} !{\vrule width 0.1pt} p{2.5cm} !{\vrule width 0.1pt} p{3.5cm} !{\vrule width 0.1pt} p{2.2cm} !{\vrule width 0.1pt} p{1.5cm}}
 
-
+\toprule
 \toprule
 \textbf{Posición} & \textbf{Equipo / Autor} & \textbf{Modelo principal} & \textbf{Características clave} & \textbf{WRMSSE} & \textbf{Fuente} \\
+\midrule
 \midrule
 \endfirsthead
 
 \toprule
+\toprule
 \textbf{Posición} & \textbf{Equipo / Autor} & \textbf{Modelo principal} & \textbf{Características clave} & \textbf{WRMSSE} & \textbf{Fuente} \\
 \midrule
+
 \endhead
 
 \textbf{1º} & Kailex & LightGBM global & Feature engineering intensivo (>300 variables), modelo global, tuning exhaustivo & 0.52 & \cite{kailex2020} \\
@@ -778,10 +778,12 @@ Top 10 & Varios & LightGBM / CatBoost & Variaciones en ingeniería de variables 
 \midrule
 Paper oficial & Makridakis et al. (2020) & --- & Análisis de resultados y patrones comunes & --- & \cite{makridakis2021} \\
 \bottomrule
+\bottomrule
 
+\multicolumn{6}{c}{}\\[-4pt]
+\caption{Resumen de las soluciones mejor clasificadas en la competición M5 (Accuracy Track)} \\
 \end{longtable}
 
-\textbf{Tabla 2.} Resumen de las soluciones mejor clasificadas en la competición M5 (Accuracy Track).   
 
 \newpage
 \section{Síntesis y relevancia del trabajo}
@@ -790,6 +792,7 @@ La literatura muestra que la predicción de demanda en estructuras
 jerárquicas requiere modelos capaces de manejar alta dimensionalidad,
 capturar patrones temporales y mantener coherencia entre niveles. 
 Se observa un claro predominio de enfoques centrados de forma aislada en modelos boosting, modelos profundos o técnicas de reconciliación jerárquica. Sin embargo, estos trabajos rara vez abordan de forma conjunta la interacción entre precisión predictiva, coherencia jerárquica, coste computacional e interpretabilidad dentro de un mismo marco experimental.
+
 En este contexto, el presente trabajo propone una aproximación integradora que combina estos elementos en un único pipeline reproducible, permitiendo evaluar de forma sistemática no solo el rendimiento predictivo, sino también las implicaciones prácticas de cada enfoque en términos de escalabilidad, interpretabilidad y aplicabilidad en entornos reales de retail.
 La reconciliación jerárquica mediante MinT se
 consolida como un componente clave para asegurar coherencia estructural,
@@ -815,6 +818,9 @@ interpretabilidad en el contexto del dataset M5. Esta aproximación
 permite no solo contrastar el rendimiento de los distintos modelos, sino
 también situar los resultados obtenidos frente a los estándares
 establecidos por las soluciones más exitosas de la competición.
+
+\cleardoublepage
+\pagestyle{plain}
 
 \addcontentsline{toc}{section}{Bibliografía}
 \bibliographystyle{plainurl}
