@@ -35,17 +35,17 @@ Structure:
 ## Project Structure
 
 
-TFM/
-├── src/
-│ └── spark/
-│ ├── session.py
-│ ├── load_data.py
-│ ├── validate.py
-│ ├── build_features.py
-│
-├── run_spark_pipeline.py
-├── requirements.txt
-├── README.md
+M3/
+ ├── src/
+ │   ├── spark/
+ │   ├── ml/
+ ├── data/
+ │   ├── raw/
+ │   ├── features/
+ ├── run_spark_pipeline.py
+ ├── requirements.txt
+ ├── README.md
+ ├── .gitignore
 
 ---
 
