@@ -1,4 +1,4 @@
-from pyspark.sql.functions import expr, col, lag, avg, broadcast
+from pyspark.sql.functions import col, lag, avg, stddev, broadcast
 from pyspark.sql.window import Window
 from pyspark.storagelevel import StorageLevel
 
@@ -8,6 +8,7 @@ def build_features(sales, calendar, prices):
     # --------------------------------------------------
     # 1. MELT / UNPIVOT sales_train_validation
     # --------------------------------------------------
+
     cols = sales.columns[6:]
 
     expr_str = "stack({}, {}) as (d, sales)".format(
@@ -15,18 +16,22 @@ def build_features(sales, calendar, prices):
         ",".join([f"'{c}', {c}" for c in cols])
     )
 
-    sales_long = sales.selectExpr(*sales.columns[:6], expr_str)
+    sales_long = sales.selectExpr(
+        *sales.columns[:6],
+        expr_str
+    )
 
     # --------------------------------------------------
     # 2. Persist datasets reutilizados
     # --------------------------------------------------
-    sales_long.persist(StorageLevel.MEMORY_AND_DISK)
-    prices.persist(StorageLevel.MEMORY_AND_DISK)
+
+    sales_long.persist(StorageLevel.DISK_ONLY)
+    prices.persist(StorageLevel.DISK_ONLY)
 
     # --------------------------------------------------
     # 3. JOINS optimizados
-    # calendar es pequeño -> broadcast
     # --------------------------------------------------
+
     df = sales_long.join(
         broadcast(calendar),
         "d",
@@ -40,39 +45,93 @@ def build_features(sales, calendar, prices):
     )
 
     # --------------------------------------------------
+    # Persist después del join grande
+    # --------------------------------------------------
+
+    df.persist(StorageLevel.DISK_ONLY)
+
+    # Forzar ejecución del persist
+    df.count()
+
+    # --------------------------------------------------
     # 4. Tipos
     # --------------------------------------------------
-    df = df.withColumn("date", col("date").cast("date"))
+
+    df = df.withColumn(
+        "date",
+        col("date").cast("date")
+    )
 
     # --------------------------------------------------
     # 5. Repartition antes de ventanas
-    # mejora para item/store
     # --------------------------------------------------
-    df = df.repartition("store_id", "item_id")
+
+    df = df.repartition("store_id")
 
     # --------------------------------------------------
-    # 6. Window features
+    # 6. Window definition
     # --------------------------------------------------
+
     window = Window.partitionBy(
         "item_id",
         "store_id"
     ).orderBy("date")
 
-    # Lag 7 días
+    # --------------------------------------------------
+    # 7. Lags
+    # --------------------------------------------------
+
+    df = df.withColumn(
+        "lag_1",
+        lag("sales", 1).over(window)
+    )
+
     df = df.withColumn(
         "lag_7",
         lag("sales", 7).over(window)
     )
 
-    # Media móvil 28 días previos
-    rolling_window = window.rowsBetween(-28, -1)
-
     df = df.withColumn(
-        "rolling_mean_28",
-        avg("sales").over(rolling_window)
+        "lag_28",
+        lag("sales", 28).over(window)
     )
 
     # --------------------------------------------------
-    # 7. Resultado final
+    # 8. Rolling windows
     # --------------------------------------------------
+
+    rolling_window_7 = window.rowsBetween(-7, -1)
+    rolling_window_28 = window.rowsBetween(-28, -1)
+
+    df = df.withColumn(
+        "rolling_mean_7",
+        avg("sales").over(rolling_window_7)
+    )
+
+    df = df.withColumn(
+        "rolling_mean_28",
+        avg("sales").over(rolling_window_28)
+    )
+
+    df = df.withColumn(
+        "rolling_std_7",
+        stddev("sales").over(rolling_window_7)
+    )
+
+    df = df.withColumn(
+        "rolling_std_28",
+        stddev("sales").over(rolling_window_28)
+    )
+
+    # --------------------------------------------------
+    # 9. Liberar memoria temporal
+    # --------------------------------------------------
+
+    sales_long.unpersist()
+    prices.unpersist()
+
+    # --------------------------------------------------
+    # 10. Resultado final
+    # --------------------------------------------------
+
     return df
