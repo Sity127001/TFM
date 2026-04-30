@@ -3,9 +3,11 @@ from src.spark.load_data import load_data
 from src.spark.validate import validate_data
 from src.spark.build_features import build_features
 from pathlib import Path
-
+import time
 
 def main():
+
+    start_time = time.time()
 
     spark = get_spark()
 
@@ -43,7 +45,17 @@ def main():
         print(f.name)
 
     spark.stop()
+    
+    # TIEMPO
+    end_time = time.time()
+
+    elapsed = end_time - start_time
+
+    print("\nPIPELINE TIME:")
+    print(f"{elapsed:.2f} seconds")
+    print(f"{elapsed/60:.2f} minutes")
 
 
 if __name__ == "__main__":
     main()
+
