@@ -199,7 +199,7 @@ Estrategia:
 # Workflow Summary
 Notebook 01  
 Exploración inicial del dataset y análisis estructural
-↓  
+↓
 Notebook 02  
 Merge completo y transformación Wide → Long  
 (validado manualmente en pandas)  
