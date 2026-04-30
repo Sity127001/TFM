@@ -206,7 +206,7 @@ Merge completo y transformación Wide → Long
 ↓  
 Notebook 03  
 Feature engineering sobre sample  
-(validación manual de lags y rolling statistics)  
+(validación manual de lags y rolling statistics)
 ↓
 Implementación modular en scripts Python  
 (replica de la lógica validada en notebooks)  
