@@ -2,6 +2,8 @@ from src.spark.session import get_spark
 from src.spark.load_data import load_data
 from src.spark.validate import validate_data
 from src.spark.build_features import build_features
+from pathlib import Path
+
 
 def main():
 
@@ -20,23 +22,28 @@ def main():
     df = build_features(sales, calendar, prices)
 
     # 4. Save
-        # Save
-    output_path = "data/features/m5_features"
+    output_path = Path("data/features/m5_features")
 
-    df.write.mode("overwrite").parquet(output_path)
+    # crear carpeta si no existe
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    df = df.repartition("store_id")    
+
+    df.write \
+        .mode("overwrite") \
+        .partitionBy("store_id") \
+        .parquet(str(output_path))
 
     print("PIPELINE FINALIZADO OK")
     print(f"OUTPUT PATH: {output_path}")
 
-    # Mostrar archivos generados
-    path = Path(output_path)
-
     print("FILES GENERATED:")
 
-    for f in path.glob("*"):
+    for f in output_path.glob("*"):
         print(f.name)
 
     spark.stop()
+
 
 if __name__ == "__main__":
     main()
