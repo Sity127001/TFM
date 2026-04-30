@@ -103,7 +103,7 @@ Posteriormente:
 
 # Project Structure
 
-
+```
 M3/
  ├── src/
  │   ├── spark/
@@ -160,7 +160,7 @@ M3/
  ├── requirements.txt
  ├── README.md
  ├── .gitignore
- 
+ ```
 ---
 
 ## Execution
@@ -197,61 +197,40 @@ Estrategia:
 ---
 
 # Workflow Summary
-----------------------------------------------------------
 Notebook 01  
 Exploración inicial del dataset y análisis estructural
------------------------------------------------------------
                             ↓  
------------------------------------------------------------
 Notebook 02  
 Merge completo y transformación Wide → Long  
 (validado manualmente en pandas)  
------------------------------------------------------------
                             ↓  
------------------------------------------------------------
 Notebook 03  
 Feature engineering sobre sample  
 (validación manual de lags y rolling statistics)  
------------------------------------------------------------
-                            ↓  
-
------------------------------------------------------------
+                            ↓
 Implementación modular en scripts Python  
 (replica de la lógica validada en notebooks)  
------------------------------------------------------------
                             ↓  
 
------------------------------------------------------------
 Intento de ejecución completa en pandas  
 (limitaciones de memoria detectadas)  
------------------------------------------------------------
                             ↓  
 
------------------------------------------------------------
 Spark pipeline  
 ejecución distribuida del feature engineering completo  
------------------------------------------------------------
-                            ↓  
 
------------------------------------------------------------
+                            ↓  
 Dataset final en parquet  
 (particionado por store_id)  
------------------------------------------------------------
                             ↓  
-
------------------------------------------------------------
 Modelado por store  
 (entrenamiento inicial sobre CA_1 y posterior estrategia foreach store)  
------------------------------------------------------------
+
                            ↓  
 
------------------------------------------------------------
 Reconciliación jerárquica  
 (Bottom-Up y MinT)  
------------------------------------------------------------
-↓  
+                            ↓  
 
------------------------------------------------------------
 Visualización final  
-(Power BI)
------------------------------------------------------------
+(Power BI)-
