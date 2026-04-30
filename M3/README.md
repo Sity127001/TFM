@@ -1,48 +1,107 @@
-# TFM UOC
+# TFM UOC  
+## M3 — Spark ETL and Modeling Pipeline
 
-## M3 — Spark ETL Pipeline
+Este módulo implementa un pipeline completo de transformación y modelado sobre el dataset **M5 Forecasting** utilizando **Apache Spark** y modelos de Machine Learning.
 
-Este módulo implementa un pipeline de transformación sobre el dataset M5 utilizando Apache Spark.
+El objetivo principal es generar un dataset estructurado y optimizado para el entrenamiento de modelos predictivos de demanda, manteniendo la coherencia jerárquica del problema.
 
-El objetivo es generar un dataset estructurado y optimizado para el entrenamiento de modelos de predicción de demanda.
 ---
 
-## Pipeline Steps
-spark 
-Notebook - CA_1 (validación)
+# Pipeline Overview
+
+El flujo completo del proyecto se desarrolla en varias etapas:
+
+## Exploratory Phase (pandas)
+
+Validación lógica de transformaciones utilizando subconjuntos del dataset.
+
+Notebooks:
+
+01_dataset_exploration.ipynb  
 - Load raw data  
-- Data validation  
-- Feature engineering  
-  - lag features  
-  - rolling statistics  
-  - calendar features  
-- Join external datasets (calendar, prices)  
-- Export parquet dataset - partition by por store 
+- Structural exploration  
+- Dimensional analysis  
+- Memory evaluation  
+- Justification for Spark usage  
 
-Pipeline 1:
-Notebook - CA_1 (validación)
+02_data_preparation.ipynb  
+- Wide → Long transformation  
+- Merge with calendar  
+- Merge with prices  
+- Missing value treatment  
+- Export clean dataset  
+- Generate sample dataset  
 
-Pipeline 2:
-Script - foreach store
+03_feature_engineering.ipynb  
+- Temporal features  
+- Lag features  
+- Rolling statistics  
+- Feature validation  
+- Preparation for modeling  
 
-Pipeline 3:
-Script opcional - global dataset
+Esta fase permite validar la lógica antes de ejecutar el procesamiento distribuido.
+
 ---
 
-## Output
+## Spark ETL Pipeline
 
-El pipeline genera un dataset en formato parquet:
+Implementación distribuida del pipeline completo.
+
+Scripts:
+
+- session.py → Spark configuration  
+- load_data.py → Raw data loading  
+- validate.py → Data validation  
+- build_features.py → Feature generation  
+
+Pipeline principal:
+
+run_spark_pipeline.py
+
+Pasos:
+
+- Load raw data  
+- Validate datasets  
+- Join calendar and prices  
+- Generate lag features  
+- Generate rolling statistics  
+- Partition dataset by store_id  
+- Export parquet dataset  
+
+Resultado:
 
 data/features/m5_features/
 
-Structure:
+Estructura:
 
-- partitioned parquet files  
-- _SUCCESS flag  
-- compressed columnar format  
+partitioned parquet files  
+_SUCCESS flag  
+compressed columnar format  
+
 ---
 
-## Project Structure
+## Modeling Strategy
+
+Debido al tamaño del dataset (~58 millones de registros), el entrenamiento se realiza inicialmente por subconjuntos jerárquicos (store_id).
+
+Pipeline de modelado:
+
+1. Selección de tienda individual (ej: CA_1)  
+2. Split temporal (train / validation / test)  
+3. Entrenamiento de modelos  
+4. Evaluación métricas  
+5. Interpretabilidad del modelo  
+6. Reconciliación jerárquica  
+
+Posteriormente:
+
+- Entrenamiento automático foreach store  
+- Posible modelo global (no ejecutado inicialmente)  
+- Implementación futura de LSTM  
+
+---
+
+# Project Structure
 
 
 M3/
@@ -55,30 +114,28 @@ M3/
  │   │
  │   ├── exploratory/
  │   │   data_loading.py
- │   │   utils.py (si aparece)
+ │   │   feature_engineering.py
+ │   │   validate.py
  │   │
  │   ├── ml/
- │        train_single_store.py
- │        run_all_stores.py
- │        run_global_model.py
+ │        train_single_store.py           (trabajando...)
+ │        train_all_stores.py (iteración) (trabajando...)
+ │        run_global_model.py             (trabajando...)
  ├── data/
  │       ├── raw/
+ │            sales_train_validation.csv
+ │            sell_prices.csv
+ │            calendar.csv
  │       ├── features/
  │              ├── store_id=CA_1/
  │              ├── store_id=TX_1/
                 ...
  │       ├── processed/
  │              ├── spark/
- │                     CA_1.parquet
- │                     CA_2.parquet
- │                     CA_3.parquet
- │                     TX_1.parquet
- │                     TX_2.parquet
- │                     TX_3.parquet
- │                     WI_1.parquet
- │                     WI_2.parquet
- │                     WI_3.parquet
- │                     CA_4.parquet
+ │                     CA_1.parquet (trabajando...)
+ │                     CA_2.parquet (trabajando...)
+ │                     CA_3.parquet (trabajando...)
+ │                     ...
  │
  │              ├── exploratory/
  │                      sales_clean.parquet
@@ -90,13 +147,14 @@ M3/
  │   ├── exploratory/
  │   │         01_dataset_exploration.ipynb
  │   │         02_data_preparation.ipynb
- │   │         03_feature_engineering.ipynb
+ │   │         03a_feature_engineering_manual.ipynb
+ │   │         03b_feature_engineering_scripts.ipynb
  │   │
  │   ├── modeling/
- │   │             04_model_training_CA1.ipynb
- │   │   ├── 05_reconciliation.ipynb
- │   │   ├── 06_shap_analysis.ipynb
- │   │   ├── 07_lstm_model.ipynb
+ │             01_modeling_pipeline_store_CA1.ipynb (trabajando...falta separar partes de reconciliación y shap)
+ │             02_reconciliation.ipynb              (trabajando...)
+ │             03_shap_analysis.ipynb               (trabajando...)
+ │             04_lstm_model.ipynb                  (trabajando...)
  │
  ├── run_spark_pipeline.py
  ├── requirements.txt
@@ -121,85 +179,79 @@ python run_spark_pipeline.py
 ---
 
 ## Notes
-Los archivos de datos (CSV y parquet) no se incluyen en el repositorio debido a su tamaño.
+Los archivos de datos generados (CSV y parquet) no se incluyen en el repositorio debido a su tamaño.
 
-i5 y 32GB RAM - modelo por store 
-modelo global (solo opcional)
+# Hardware Notes
 
+Entorno utilizado:
 
-1_dataset_exploration.ipynb
+Intel i5  
+32 GB RAM  
 
-Estructura:
+Estrategia:
 
-1. Introducción
-2. Carga de datos
-3. Exploración estructura
-4. Análisis dimensional
-5. Identificación limitaciones
-6. Justificación uso Spark
+- Modelos entrenados por store  
+- Modelo global considerado opcional  
+- Dataset completo procesado mediante Spark  
 
-Clave aquí:
+---
 
-mostrar problema memoria
-Notebook 02 — Preparación Datos
+# Workflow Summary
+----------------------------------------------------------
+Notebook 01  
+Exploración inicial del dataset y análisis estructural
+-----------------------------------------------------------
+                            ↓  
+-----------------------------------------------------------
+Notebook 02  
+Merge completo y transformación Wide → Long  
+(validado manualmente en pandas)  
+-----------------------------------------------------------
+                            ↓  
+-----------------------------------------------------------
+Notebook 03  
+Feature engineering sobre sample  
+(validación manual de lags y rolling statistics)  
+-----------------------------------------------------------
+                            ↓  
 
-Nombre:
+-----------------------------------------------------------
+Implementación modular en scripts Python  
+(replica de la lógica validada en notebooks)  
+-----------------------------------------------------------
+                            ↓  
 
-02_data_preparation.ipynb
+-----------------------------------------------------------
+Intento de ejecución completa en pandas  
+(limitaciones de memoria detectadas)  
+-----------------------------------------------------------
+                            ↓  
 
-Estructura:
+-----------------------------------------------------------
+Spark pipeline  
+ejecución distribuida del feature engineering completo  
+-----------------------------------------------------------
+                            ↓  
 
-Introducción
-Carga
-Wide → Long
-Evaluación computacional
-Merge calendario
-Merge precios
-Tratamiento missing
-Guardar parquet
-Guardar sample
-Limitaciones → Spark
+-----------------------------------------------------------
+Dataset final en parquet  
+(particionado por store_id)  
+-----------------------------------------------------------
+                            ↓  
 
-Aquí nace:
+-----------------------------------------------------------
+Modelado por store  
+(entrenamiento inicial sobre CA_1 y posterior estrategia foreach store)  
+-----------------------------------------------------------
+                           ↓  
 
-la lógica del pipeline
+-----------------------------------------------------------
+Reconciliación jerárquica  
+(Bottom-Up y MinT)  
+-----------------------------------------------------------
+↓  
 
-Notebook 03 — Feature Engineering
-
-Nombre:
-
-03_feature_engineering.ipynb
-
-Estructura:
-
-1. Variables temporales
-2. Lag features
-3. Rolling statistics
-4. Validación features
-5. Preparación para modelado
-
-Este es:
-
-el precursor directo de Spark
-
-Notebooks pandas → validación lógica
-Spark → ejecución escalable
-
-
-
-Notebook 01
-Exploración inicial
-↓
-Notebook 02
-Merge completo (lento)
-↓
-Notebook 03
-Feature engineering (solo sample)
-↓
-Spark pipeline
-Feature engineering completo
-↓
-Partitioned parquet por store
-↓
-Modelado por store
-
+-----------------------------------------------------------
+Visualización final  
+(Power BI)
+-----------------------------------------------------------
