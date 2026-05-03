@@ -1,9 +1,12 @@
 # TFM UOC  
 ## M3 — Spark ETL and Modeling Pipeline
 
-Este módulo implementa un pipeline completo de transformación y modelado sobre el dataset **M5 Forecasting** utilizando **Apache Spark** y modelos de Machine Learning.
-
-El objetivo principal es generar un dataset estructurado y optimizado para el entrenamiento de modelos predictivos de demanda, manteniendo la coherencia jerárquica del problema.
+Este módulo implementa un pipeline completo de transformación y modelado sobre 
+el dataset **M5 Forecasting** utilizando **Apache Spark** y 
+modelos de Machine Learning.
+El objetivo principal es generar un dataset estructurado y optimizado para el 
+entrenamiento de modelos predictivos de demanda, manteniendo la coherencia 
+jerárquica del problema.
 
 ---
 
@@ -150,31 +153,47 @@ M3/
  │   │         03a_feature_engineering_manual.ipynb
  │   │         03b_feature_engineering_scripts.ipynb
  │   │
- │   ├── modeling/
- │             01_modeling_pipeline_store_CA1.ipynb (trabajando...falta separar partes de reconciliación y shap)
- │             02_reconciliation.ipynb              (trabajando...)
- │             03_shap_analysis.ipynb               (trabajando...)
- │             04_lstm_model.ipynb                  (trabajando...)
+ │   ├── modeling/ 
+ │   │         01_modeling_single_store.ipynb
+ │   │         02_shap_analysis_single_store.ipynb
+ │   │         03_reconciliation_single_store.ipynb
+ modelo → predicciones → reconciliación → interpretación
+ │                        01_modeling_and_comparison_single_store.ipynb
+ │                        02_shap_analysis_single_store.ipynb
+ │                        034 a4_reconciliation_single_store.ipynb
+ │                        04_lstm_model.ipynb
+ │                        05_model_foreach_store.ipynb (después)   
  │
  ├── run_spark_pipeline.py
- ├── requirements.txt
- ├── README.md
+ ├── environment.yml
  ├── .gitignore
+ └── README.md
+ 
  ```
 ---
 
 ## Execution
 
-Instalar dependencias:
+1. Crear environment desde YAML
 
 ```
-pip install -r requirements.txt
+conda env create -f environment.yml
 ```
-
-Ejecutar pipeline:
+2. Activate environment
+```
+conda activate tfm
+```
+3. Ejecutar pipeline Spark (feature engineering):
 
 ```
 python run_spark_pipeline.py
+
+```
+
+4. Ejecutar modelado
+
+```
+python run_train_single_store.py
 ```
 ---
 
@@ -197,34 +216,24 @@ Estrategia:
 ---
 
 # Workflow Summary
-Notebook 01  
-Exploración inicial del dataset y análisis estructural
+Exploración inicial (notebooks)
 ↓
-Notebook 02  
-Merge completo y transformación Wide → Long  
-(validado manualmente en pandas)  
-↓  
-Notebook 03  
-Feature engineering sobre sample  
-(validación manual de lags y rolling statistics)
+Validación lógica en pandas (sample)
 ↓
-Implementación modular en scripts Python  
-(replica de la lógica validada en notebooks)  
-↓  
-Intento de ejecución completa en pandas  
-(limitaciones de memoria detectadas)  
-↓  
-Spark pipeline  
-ejecución distribuida del feature engineering completo  
-↓  
-Dataset final en parquet  
-(particionado por store_id)  
-↓  
-Modelado por store  
-(entrenamiento inicial sobre CA_1 y posterior estrategia foreach store)  
-↓  
-Reconciliación jerárquica  
-(Bottom-Up y MinT)  
-↓  
-Visualización final  
-(Power BI)-
+Implementación modular en scripts Python
+↓
+Limitaciones de memoria detectadas
+↓
+Migración a Spark (feature engineering)
+↓
+Dataset final en parquet (~58M filas)
+↓
+Modelado por store (loop dinámico)
+↓
+Persistencia de modelos entrenados (.pkl)
+↓
+Interpretabilidad (SHAP sobre modelo entrenado)
+↓
+Reconciliación jerárquica (Bottom-Up, MinT)
+↓
+Visualización final (Power BI)

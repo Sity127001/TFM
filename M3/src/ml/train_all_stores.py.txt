@@ -1,0 +1,22 @@
+import pandas as pd
+from train_store import run_store_pipeline
+
+df = pd.read_parquet("../../data/features/m5_features")
+
+stores = df["store_id"].unique()
+
+results = []
+
+for store in stores:
+
+    rmse, mae = run_store_pipeline(df, store)
+
+    results.append({
+        "store": store,
+        "rmse": rmse,
+        "mae": mae
+    })
+
+results_df = pd.DataFrame(results)
+
+print(results_df)
