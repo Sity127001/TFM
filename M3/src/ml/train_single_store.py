@@ -3,21 +3,20 @@ import numpy as np
 from pathlib import Path
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestRegressor
+
+#  No necesarios en pipeline final (se mantienen comentados para trazabilidad)
+# from sklearn.preprocessing import LabelEncoder
+# from sklearn.ensemble import RandomForestRegressor
 
 import lightgbm as lgb
-import xgboost as xgb
+
+# No necesario en pipeline final
+# import xgboost as xgb
+
 import joblib
 
 
 def load_store_data(store_id):
-    """
-    Carga del subconjunto de datos correspondiente a una única tienda.
-
-    Se utiliza filtrado en la lectura del parquet para evitar cargar el
-    dataset completo en memoria, lo que mejora la eficiencia del pipeline.
-    """
     df_store = pd.read_parquet(
         "../../data/features/m5_features",
         filters=[("store_id", "==", store_id)]
@@ -29,12 +28,6 @@ def load_store_data(store_id):
 
 
 def temporal_split(df_store):
-    """
-    División temporal del dataset en conjuntos de entrenamiento,
-    validación y prueba.
-
-    Se evita el uso de particiones aleatorias para prevenir data leakage.
-    """
     train = df_store[df_store["date"] < "2015-01-01"]
 
     validation = df_store[
@@ -48,12 +41,6 @@ def temporal_split(df_store):
 
 
 def prepare_features(train, validation, test):
-    """
-    Separación de variables predictoras (features) y variable objetivo.
-
-    La variable objetivo es 'sales'. Se excluyen variables identificadoras
-    y temporales no informativas para el modelo.
-    """
     target = "sales"
 
     features = [
@@ -74,12 +61,6 @@ def prepare_features(train, validation, test):
 
 
 def encode_categoricals(X_train, X_val, X_test):
-    """
-    Conversión de variables categóricas al tipo 'category'.
-
-    LightGBM permite trabajar directamente con este tipo, mejorando
-    eficiencia y evitando codificaciones manuales.
-    """
     categorical_cols = [
         "store_id", "item_id", "dept_id", "cat_id", "state_id",
         "weekday", "event_name_1", "event_type_1",
@@ -95,12 +76,6 @@ def encode_categoricals(X_train, X_val, X_test):
 
 
 def train_lightgbm(X_train, y_train, X_val, y_val, categorical_cols):
-    """
-    Entrenamiento del modelo LightGBM.
-
-    Se selecciona como modelo principal por su eficiencia en datasets
-    de gran tamaño y su capacidad para manejar variables categóricas.
-    """
     model = lgb.LGBMRegressor(
         n_estimators=100,
         learning_rate=0.05,
@@ -118,65 +93,44 @@ def train_lightgbm(X_train, y_train, X_val, y_val, categorical_cols):
     return model
 
 
-def encode_for_tree_models(X_train, X_val, X_test):
-    """
-    Codificación numérica de variables categóricas para modelos que
-    no soportan directamente categorías (Random Forest y XGBoost).
-    """
-    categorical_cols = X_train.select_dtypes(include="category").columns
+# BLOQUES DE MODELOS ALTERNATIVOS (se mantienen comentados para documentación)
 
-    for col in categorical_cols:
-        le = LabelEncoder()
-
-        X_train[col] = le.fit_transform(X_train[col].astype(str))
-        X_val[col] = le.transform(X_val[col].astype(str))
-        X_test[col] = le.transform(X_test[col].astype(str))
-
-    return X_train, X_val, X_test
+# def encode_for_tree_models(X_train, X_val, X_test):
+#     categorical_cols = X_train.select_dtypes(include="category").columns
+#
+#     for col in categorical_cols:
+#         le = LabelEncoder()
+#         X_train[col] = le.fit_transform(X_train[col].astype(str))
+#         X_val[col] = le.transform(X_val[col].astype(str))
+#         X_test[col] = le.transform(X_test[col].astype(str))
+#
+#     return X_train, X_val, X_test
 
 
-def train_random_forest(X_train, y_train):
-    """
-    Entrenamiento del modelo Random Forest como baseline.
-    """
-    model = RandomForestRegressor(
-        n_estimators=50,
-        max_depth=10,
-        n_jobs=-1,
-        random_state=42
-    )
-
-    model.fit(X_train, y_train)
-
-    return model
+# def train_random_forest(X_train, y_train):
+#     model = RandomForestRegressor(
+#         n_estimators=50,
+#         max_depth=10,
+#         n_jobs=-1,
+#         random_state=42
+#     )
+#     model.fit(X_train, y_train)
+#     return model
 
 
-def train_xgboost(X_train, y_train):
-    """
-    Entrenamiento del modelo XGBoost.
-
-    Permite comparar técnicas de boosting frente a LightGBM.
-    """
-    model = xgb.XGBRegressor(
-        n_estimators=100,
-        learning_rate=0.05,
-        max_depth=6,
-        n_jobs=-1,
-        random_state=42
-    )
-
-    model.fit(X_train, y_train)
-
-    return model
+# def train_xgboost(X_train, y_train):
+#     model = xgb.XGBRegressor(
+#         n_estimators=100,
+#         learning_rate=0.05,
+#         max_depth=6,
+#         n_jobs=-1,
+#         random_state=42
+#     )
+#     model.fit(X_train, y_train)
+#     return model
 
 
 def evaluate(y_true, y_pred):
-    """
-    Cálculo de métricas de evaluación.
-
-    RMSE penaliza errores grandes.
-    MAE proporciona una medida interpretable del error medio.
-    """
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mae = mean_absolute_error(y_true, y_pred)
 
@@ -184,17 +138,6 @@ def evaluate(y_true, y_pred):
 
 
 def run_modeling_for_store(store_id):
-    """
-    Ejecución completa del pipeline de modelado para una tienda.
-
-    Incluye:
-    - carga de datos
-    - división temporal
-    - preparación de variables
-    - entrenamiento de modelos
-    - evaluación
-    - almacenamiento de resultados
-    """
 
     df_store = load_store_data(store_id)
 
@@ -208,7 +151,7 @@ def run_modeling_for_store(store_id):
         X_train, X_val, X_test
     )
 
-    # Modelo principal
+    #  Modelo final seleccionado
     lgb_model = train_lightgbm(
         X_train, y_train, X_val, y_val, categorical_cols
     )
@@ -216,36 +159,38 @@ def run_modeling_for_store(store_id):
     y_pred_lgb = lgb_model.predict(X_test)
     rmse_lgb, mae_lgb = evaluate(y_test, y_pred_lgb)
 
-    # Preparación para modelos alternativos
-    X_train_rf, X_val_rf, X_test_rf = encode_for_tree_models(
-        X_train.copy(), X_val.copy(), X_test.copy()
-    )
+    #  BLOQUES ELIMINADOS (RF y XGB) – ya evaluados en fase experimental
 
-    # Random Forest
-    rf_model = train_random_forest(X_train_rf, y_train)
-    y_pred_rf = rf_model.predict(X_test_rf)
-    rmse_rf, mae_rf = evaluate(y_test, y_pred_rf)
+    # X_train_rf, X_val_rf, X_test_rf = encode_for_tree_models(
+    #     X_train.copy(), X_val.copy(), X_test.copy()
+    # )
 
-    # XGBoost
-    xgb_model = train_xgboost(X_train_rf, y_train)
-    y_pred_xgb = xgb_model.predict(X_test_rf)
-    rmse_xgb, mae_xgb = evaluate(y_test, y_pred_xgb)
+    # rf_model = train_random_forest(X_train_rf, y_train)
+    # y_pred_rf = rf_model.predict(X_test_rf)
+    # rmse_rf, mae_rf = evaluate(y_test, y_pred_rf)
 
-    # Consolidación de resultados
+    # xgb_model = train_xgboost(X_train_rf, y_train)
+    # y_pred_xgb = xgb_model.predict(X_test_rf)
+    # rmse_xgb, mae_xgb = evaluate(y_test, y_pred_xgb)
+
+    #  Resultados finales (solo modelo seleccionado)
     results = pd.DataFrame({
-        "Model": ["LightGBM", "Random Forest", "XGBoost"],
-        "RMSE": [rmse_lgb, rmse_rf, rmse_xgb],
-        "MAE": [mae_lgb, mae_rf, mae_xgb],
+        "Model": ["LightGBM"],
+        "RMSE": [rmse_lgb],
+        "MAE": [mae_lgb],
         "store_id": store_id
     })
 
-    # Persistencia de modelos
     model_path = Path("../../models")
     model_path.mkdir(parents=True, exist_ok=True)
 
+    # Guardado solo del modelo final
     joblib.dump(lgb_model, model_path / f"lgbm_store_{store_id}.pkl")
-    joblib.dump(rf_model, model_path / f"rf_store_{store_id}.pkl")
-    joblib.dump(xgb_model, model_path / f"xgb_store_{store_id}.pkl")
+
+    # ❌ Eliminado guardado de RF y XGB
+    # joblib.dump(rf_model, ...)
+    # joblib.dump(xgb_model, ...)
+
     joblib.dump(features, model_path / f"features_store_{store_id}.pkl")
 
     return results
