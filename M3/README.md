@@ -1,86 +1,124 @@
 # TFM UOC  
 ## M3 — Spark ETL and Modeling Pipeline
 
-Este módulo implementa un pipeline completo de transformación y modelado sobre 
-el dataset **M5 Forecasting** utilizando **Apache Spark** y 
-modelos de Machine Learning.
-El objetivo principal es generar un dataset estructurado y optimizado para el 
-entrenamiento de modelos predictivos de demanda, manteniendo la coherencia 
-jerárquica del problema.
+M3 — Pipeline ETL Distribuido y Forecasting Jerárquico
 
+Este módulo implementa un pipeline completo de transformación, modelado y reconciliación jerárquica sobre el dataset M5 Forecasting utilizando Apache Spark, Python y modelos de Machine Learning.
+
+El objetivo principal del proyecto es construir un sistema escalable capaz de procesar grandes volúmenes de datos de series temporales retail, generar predicciones de demanda y mantener la coherencia jerárquica entre distintos niveles de agregación.
+
+El pipeline integra:
+
+- Procesamiento distribuido mediante Apache Spark
+- Ingeniería de características temporales
+- Entrenamiento incremental de modelos predictivos
+- Forecasting jerárquico multiserie
+- Interpretabilidad mediante SHAP
+- Reconciliación jerárquica aproximada mediante MinT
+- Exportación estructurada de resultados para visualización y análisis
 ---
 
 # Pipeline Overview
 
-El flujo completo del proyecto se desarrolla en varias etapas:
+El flujo completo del proyecto se divide en varias etapas:
 
 ## Exploratory Phase (pandas)
 
 Validación lógica de transformaciones utilizando subconjunto del dataset.
 
-Notebooks:
+La primera fase del proyecto se desarrolla utilizando pandas sobre subconjuntos del dataset.
+
+El objetivo principal de esta etapa es validar la lógica de transformación, feature engineering y modelado antes de ejecutar el procesamiento distribuido sobre el dataset completo.
+
+Durante esta fase se analizaron:
+
+- Estructura del dataset
+- Dimensionalidad
+- Uso de memoria
+- Transformaciones temporales
+- Variables categóricas
+- Estrategias de modelado
+- Viabilidad computacional
+
+Notebooks utilizados:
 
 01_dataset_exploration.ipynb  
-- Load raw data  
-- Structural exploration  
-- Dimensional analysis  
-- Memory evaluation  
-- Justification for Spark usage  
+- Carga de datos originales
+- Exploración estructural
+- Análisis dimensional
+- Evaluación de memoria
+- Justificación del uso de Spark  
 
 02_data_preparation.ipynb  
-- Wide a Long transformation  
-- Merge with calendar  
-- Merge with prices  
-- Missing value treatment  
-- Export clean dataset  
-- Generate sample dataset  
+- Transformación wide-to-long
+- Integración con calendar.csv
+- Integración con sell_prices.csv
+- Tratamiento de valores nulos
+- Exportación de datasets limpios
+- Generación de subconjuntos de prueba  
 
 03_feature_engineering.ipynb  
-- Temporal features  
-- Lag features  
-- Rolling statistics  
-- Feature validation  
-- Preparation for modeling  
+- Variables temporales
+- Variables lag
+- Rolling statistics
+- Validación de features
+- Preparación para modelado
 
-Esta fase permite validar la lógica antes de ejecutar el procesamiento distribuido.
+## Exploratory Scripts
 
-en esta fase se implementaron tambien exploratory scripts que hacen lo mismo lo
-que se hace en notebooks de manera automatica - se han desarrollado con el fin 
-de aplicarlos al dataset completo - pero se ha petado la memoria RAM
-data_loading.py validate.py feature_engineering.py
+Además de los notebooks exploratorios, se desarrollaron scripts automáticos 
+equivalentes para validar la ejecución del pipeline fuera del entorno notebook.
+Estos scripts fueron diseñados inicialmente para ejecutarse sobre el dataset 
+completo utilizando pandas. Sin embargo, durante las pruebas se detectaron 
+limitaciones de memoria debido al tamaño del dataset.
+
+Scripts exploratorios
+data_loading.py
+validate.py
+feature_engineering.py
+
+La detección de estas limitaciones motivó posteriormente la migración del 
+pipeline ETL a Apache Spark.
 ---
 
 ## Spark ETL Pipeline
+Debido al tamaño final del dataset (~58 millones de registros), se implementó 
+un pipeline ETL distribuido mediante Apache Spark.
 
-Al intentar procesar el dataset completo se ha petado el RAM, lo que llevo a 
-desarrollo de la Implementación distribuida del pipeline completo.
+Esta arquitectura permite:
 
-Scripts:
+- Procesar el dataset completo
+- Reducir el consumo de memoria local
+- Escalar el feature engineering
+- Exportar datasets optimizados en formato parquet
 
-- session.py - Spark configuration  
-- load_data.py - Raw data loading  
-- validate.py - Data validation  
-- build_features.py - Feature generation  
+## Scripts Spark:
 
-Pipeline principal that run all scripts listed above:
+- session.py - Configuración de sesión Spark.  
+- load_data.py - Carga de datasets originales.  
+- validate.py - Validación estructural y control de calidad. 
+- build_features.py - Generación distribuida de features temporales.  
 
-run_spark_pipeline.py
+## Pipeline principal that run all scripts listed above:
 
-Pasos:
+- run_spark_pipeline.py
+Script encargado de orquestar todas las etapas ETL.
 
-- Load raw data  
-- Validate datasets  
-- Join calendar and prices  
-- Generate lag features  
-- Generate rolling statistics  
-- Partition dataset by store_id  
-- Export parquet dataset  
+### Etapas ejecutadas
+- Load raw data
+- Validate datasets
+- Merge calendar and prices
+- Generate lag features
+- Generate rolling statistics
+- Partition dataset by store_id
+- Export parquet dataset
 
-Resultado:
-los ficheros parquet partitioned by store_id guardados en 
+### Resultado ETL:
 
+El pipeline genera un dataset final particionado por tienda en formato parquet: 
+```
 data/features/m5_features/
-
+```
 ---
 
 ## Modeling Strategy
@@ -106,16 +144,16 @@ variables categóricas y datasets de gran tamaño.
 Por este motivo, se selecciona LightGBM como modelo principal para su aplicación
 en el pipeline global.
 
-### Notebooks utilizados:
-
-01_complete_modeling_pipeline_store_CA1.ipynb  
-- Ejecución completa del pipeline de modelado sobre una tienda  
-- Validación end-to-end del flujo: carga, features, entrenamiento y evaluación  
+### Notebooks de modelado:
 
 01_modeling_single_store.ipynb  
-- Entrenamiento y comparación de modelos (Random Forest, XGBoost y LightGBM)  
+- Entrenamiento y comparación de modelos (Random Forest, XGBoost y LightGBM) sobre una tienda  
+- División temporal train/validation/test  
+- Evaluación temporal respetando estructura secuencial de la serie (Aproximación
+a validación temporal rolling) 
 - Evaluación mediante métricas RMSE y MAE  
-- Selección del modelo más adecuado  
+- Evaluación jerárquica inspirada en WRMSSE  
+- Selección del modelo más adecuado
 
 02_shap_analysis_single_store.ipynb  
 - Análisis de interpretabilidad del modelo mediante valores SHAP  
@@ -160,7 +198,16 @@ diferentes niveles.
 
 4. run_mint_reconciliation.py  
    - Aplicación de reconciliación jerárquica (MinT aproximado por proporciones)  
-   - Generación de predicciones coherentes entre niveles  
+   - Generación de predicciones coherentes entre niveles 
+5. build_m5_evaluation.py  
+   - Construcción de estructuras auxiliares para evaluación jerárquica  
+   - Cálculo de escalas RMSSE  
+   - Generación de pesos basados en volumen de ventas  
+
+6. compute_wrmsse_final.py  
+   - Cálculo final de la métrica WRMSSE  
+   - Integración de predicciones reconciliadas, escalas y pesos  
+   - Evaluación jerárquica global del sistema predictivo
 
 Las predicciones generadas a nivel desagregado (store–item) se utilizan posteriormente 
 para reconstruir la jerarquía completa del problema y aplicar técnicas de reconciliación, 
@@ -174,8 +221,11 @@ utilizando un subconjunto del dataset.
 Este experimento tiene como objetivo evaluar la capacidad de modelos secuenciales para capturar 
 dependencias temporales en comparación con modelos basados en árboles.
 
-El modelo LSTM no forma parte del pipeline principal debido a su mayor complejidad computacional 
-y a su limitada escalabilidad en el contexto del problema.
+Sin embargo, el modelo LSTM no forma parte del pipeline principal debido a:
+
+- Mayor coste computacional
+- Menor escalabilidad
+- Mayor complejidad de entrenamiento
 
 ### Notebook utilizado:
 
@@ -183,11 +233,49 @@ y a su limitada escalabilidad en el contexto del problema.
 - Implementación de modelo LSTM  
 - Evaluación comparativa frente a LightGBM  
 - Análisis de viabilidad en el contexto del problema
-
 ---
+### Restricciones computacionales
+
+El proyecto se desarrolló sobre hardware local:
+
+Intel i5
+32 GB RAM
+
+Debido al tamaño del dataset y a la complejidad del forecasting jerárquico, fue necesario adoptar distintas estrategias de optimización:
+
+Procesamiento distribuido con Spark
+Particionado por store_id
+Exportación parquet
+Entrenamiento incremental
+Reconciliación MinT aproximada
+Operaciones vectorizadas
+Uso selectivo de SHAP sobre subconjuntos
+
+Estas decisiones permitieron construir un pipeline funcional y reproducible sobre el dataset completo.
+
+Contribuciones principales
+
+### El proyecto aporta:
+
+# Contribuciones principales
+
+El proyecto aporta:
+
+- Pipeline ETL distribuido mediante Apache Spark para procesamiento de grandes 
+volúmenes de datos
+- Ingeniería de características temporales a gran escala
+- Entrenamiento incremental de un modelo global LightGBM sobre múltiples series 
+temporales
+- Forecasting jerárquico multiserie
+- Reconstrucción jerárquica de predicciones en múltiples niveles de agregación
+- Reconciliación jerárquica aproximada mediante MinT diagonal
+- Evaluación jerárquica inspirada en WRMSSE
+- Integración de interpretabilidad mediante SHAP
+- Arquitectura modular y reproducible orientada a escalabilidad
+- Integración de Spark, pandas y modelos de Machine Learning dentro de un 
+pipeline unificado
 
 # Project Structure
-
 ```
 M3/
  ├── data/
@@ -203,25 +291,25 @@ M3/
  │
  │    ├── processed/
  │       ├── exploratory/
- │       ├── sales_clean.parquet
- │       ├── calendar_clean.parquet
- │       ├── prices_clean.parquet
- │       ├── m5_clean.parquet
- │       └── m5_clean_sample.parquet
+ │             ├── sales_clean.parquet
+ │             ├── calendar_clean.parquet
+ │             ├── prices_clean.parquet
+ │             ├── m5_clean.parquet
+ │             └── m5_clean_sample.parquet
  ├── notebooks/
  │   ├── exploratory/
- │       ├── 01_dataset_exploration.ipynb
- │       ├── 02_data_preparation.ipynb
- │       ├── 03a_feature_engineering_manual.ipynb
- │       └── 03b_feature_engineering_scripts.ipynb
+ │        ├── 01_dataset_exploration.ipynb
+ │        ├── 02_data_preparation.ipynb
+ │        ├── 03a_feature_engineering_manual.ipynb
+ │        └── 03b_feature_engineering_scripts.ipynb
  │    
  │   ├── modeling/ 
- │       ├── 01_modeling_single_store.ipynb
- │       ├── 02_shap_analysis_single_store.ipynb
- │       ├── 03_reconciliation_single_store.ipynb
- │       └── 04_lstm_experiment.ipynb
+ │        ├── 01_modeling_single_store.ipynb
+ │        ├── 02_shap_analysis_single_store.ipynb
+ │        ├── 03_reconciliation_single_store.ipynb
+ │        └── 04_lstm_experiment.ipynb
  │   ├── validation/ 
- │       └── overall_validation.ipynb
+ │        └── overall_validation.ipynb
  ├── src/
  │   ├── exploratory/
  │       ├── data_loading.py
@@ -238,7 +326,9 @@ M3/
  │       ├── run_modelo_global.py
  │       ├── run_post_analysis.py
  │       ├── build_hierarchy.py
- │       └── run_mint_reconciliation.py
+ │       ├── run_mint_reconciliation.py
+ │       ├── build_m5_evaluation.py
+ │       └── compute_wrmsse_final.py
  │             
  ├── run_spark_pipeline.py
  ├── run_modeling_pipeline.py
@@ -254,12 +344,12 @@ M3/
 La ejecución del proyecto se realiza desde la raíz del repositorio mediante los 
 siguientes comandos:
 
-1. Crear environment a partir de  YAML
+1. Crear entorno Conda
 
 ```
 conda env create -f environment.yml
 ```
-2. Activate environment
+2. Activar entorno
 ```
 conda activate tfm
 ```
@@ -270,7 +360,7 @@ python run_spark_pipeline.py
 
 ```
 
-4. Ejecutar modelado
+4. Ejecutar pipeline de modelado
 
 ```
 python run_modeling_pipeline.py
@@ -278,52 +368,44 @@ python run_modeling_pipeline.py
 ---
 
 ## Notes
-Los archivos de datos generados (parquet) no se incluyen en el repositorio debido a su tamaño.
+Los archivos de datos generados (parquet) no se incluyen en el repositorio 
+debido a su tamaño.
 
-# Hardware Notes
-
-Entorno utilizado:
-
-Intel i5  
-32 GB RAM  
-
-Estrategia:
-
-- Procesamiento distribuido mediante Apache Spark para el feature engineering  
-- Entrenamiento de un modelo global LightGBM sobre el conjunto completo de datos  
-- Uso de particionado por store_id para gestionar limitaciones de memoria  
-
----
 
 # Workflow Summary
 
-Exploración inicial (notebooks)  
+Exploración inicial mediante notebooks  
 ↓  
 Validación lógica en pandas (subset del dataset)  
 ↓  
 Implementación modular en scripts Python  
 ↓  
-Limitaciones de memoria detectadas  
+Detección de limitaciones de memoria en procesamiento local  
 ↓  
-Migración a Spark (feature engineering distribuido)  
+Migración a Apache Spark (feature engineering distribuido)  
 ↓  
 Generación de dataset final en formato parquet (~58M filas)  
 ↓  
+Entrenamiento y comparación de modelos (Random Forest, XGBoost y LightGBM) 
+sobre subconjuntos representativos  
+↓  
+Selección de LightGBM como modelo principal  
+↓ 
 Entrenamiento incremental de modelo global (LightGBM)  
 ↓  
 Generación de predicciones sobre todo el dataset  
 ↓  
 Interpretabilidad del modelo (SHAP)  
 ↓  
-Construcción de jerarquía completa de series temporales  
-
+Reconstrucción de jerarquía completa de series temporales  
 TOTAL  
  └── STORE  
       └── CAT  
            └── DEPT  
                 └── ITEM  
-
 ↓  
 Reconciliación jerárquica (MinT) para garantizar coherencia entre niveles  
-↓  
+↓
+Evaluación jerárquica inspirada en WRMSSE  
+↓
 Visualización final de resultados (Power BI)
