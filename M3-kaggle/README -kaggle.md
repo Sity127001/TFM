@@ -255,22 +255,27 @@ La ejecución del proyecto se realiza desde la plataforma de Kaggle.
 
 https://www.kaggle.com/datasets/sity127uoc/m5-uoc
 
-2. Subir el notebook m5-full-pipeline.ipynb (M3-kaggle\notebooks\modeling)
+2. Subir el notebook m5-full-pipeline.ipynb (ubicado en M3-kaggle\notebooks\modeling)
 
 3. run all
 
 4. Descargar proyecto con outputs
 ---
 
-## 2. Ejecución del notebook ETL para integración de ficheros Parquet 
-utilizados en Power BI
+## 2. Ejecución del notebook ETL para integración de ficheros Parquet utilizados en Power BI.
+Este notebook utiliza como entrada los outputs Parquet generados 
+previamente por las diferentes ejecuciones experimentales del pipeline 
+predictivo.
+
+Estos outputs se encuentran publicados en el siguiente dataset público de 
+Kaggle: https://www.kaggle.com/datasets/tatyanasilchenko/m5-etl
 
 La ejecución del proyecto se realiza desde la plataforma de Kaggle. 
 1.Se debe acceder al siguiente dataset público (licensia CC BY-SA 4.0) a través de este enlace:
 
 https://www.kaggle.com/datasets/tatyanasilchenko/m5-etl
 
-2. Subir el notebook m5_powerbi_modeling.ipynb (M3-kaggle\notebooks\powerbi-etl)
+2. Subir el notebook m5_powerbi_modeling.ipynb (ubicado en M3-kaggle\notebooks\powerbi-etl)
 
 3. run all
 

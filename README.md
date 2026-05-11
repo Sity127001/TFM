@@ -47,7 +47,7 @@ El repositorio Git incluido en este proyecto contiene principalmente la versión
 Otras variantes experimentales intermedias (exp01_29f y exp03_35f) fueron utilizadas durante validaciones metodológicas y pruebas de estabilidad, pero no forman parte completa del repositorio final debido a simplificaciones realizadas para facilitar la organización y reproducibilidad del proyecto.
 
 
-# 3. Execucar el proyecto
+# 3. Executar el proyecto
 
 ## 3.1 Execución: versión Local:
 
@@ -85,17 +85,23 @@ https://www.kaggle.com/datasets/sity127uoc/m5-uoc
 4. Descargar proyecto con outputs
 ---
 
-## 3.3 Ejecución del notebook ETL para integración de ficheros Parquet 
-utilizados en Power BI
+## 3.3 Ejecución del notebook ETL para integración de ficheros Parquet utilizados en Power BI.
+Este notebook utiliza como entrada los **outputs Parquet generados 
+previamente por las diferentes ejecuciones experimentales del pipeline 
+predictivo.**
+
+Estos outputs se encuentran publicados en el siguiente dataset público de 
+Kaggle: https://www.kaggle.com/datasets/tatyanasilchenko/m5-etl
 
 La ejecución del proyecto se realiza desde la plataforma de Kaggle. 
-Se debe acceder al siguiente dataset público a través de este enlace:
+1.Se debe acceder al siguiente dataset público (licensia CC BY-SA 4.0) a través de este enlace:
 
 https://www.kaggle.com/datasets/tatyanasilchenko/m5-etl
 
-2. Subir el notebook m5_powerbi_modeling.ipynb
+2. Subir el notebook m5_powerbi_modeling.ipynb (ubicado en M3-kaggle\notebooks\powerbi-etl)
 
 3. run all
 
 4. Descargar tablas de hechos y dimensiones agregadas
+---
 ---
