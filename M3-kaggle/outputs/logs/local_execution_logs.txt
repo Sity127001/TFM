@@ -1,0 +1,265 @@
+(tfm) C:\Users\Titanio\TFM\M3>python run_spark_pipeline.py
+WARNING: Using incubator modules: jdk.incubator.vector
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/05/10 17:54:30 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+Sales rows: 30490
+Calendar rows: 1969
+Prices rows: 6841121
+Sales sin duplicados: 30490
+Duplicados detectados: 0
+26/05/10 17:55:19 WARN CacheManager: Asked to cache already cached data.
+PIPELINE FINALIZADO OK
+OUTPUT PATH: data\features\m5_features
+FILES GENERATED:
+._SUCCESS.crc
+store_id=CA_1
+store_id=CA_2
+store_id=CA_3
+store_id=CA_4
+store_id=TX_1
+store_id=TX_2
+store_id=TX_3
+store_id=WI_1
+store_id=WI_2
+store_id=WI_3
+_SUCCESS
+
+PIPELINE TIME:
+716.14 seconds
+11.94 minutes
+SUCCESS: The process with PID 2040 (child process of PID 2784) has been terminated.
+SUCCESS: The process with PID 2784 (child process of PID 6224) has been terminated.
+SUCCESS: The process with PID 6224 (child process of PID 8032) has been terminated.
+
+(tfm) C:\Users\Titanio\TFM\M3>python run_modeling_pipeline.py
+  File "C:\Users\Titanio\TFM\M3\run_modeling_pipeline.py", line 18
+    run_step("python src/modeling/compute_wrmsse_final.py", "COMPUTE WRMSSE"
+            ^
+SyntaxError: '(' was never closed
+
+(tfm) C:\Users\Titanio\TFM\M3>python run_modeling_pipeline.py
+
+=== MODEL TRAINING ===
+
+Training on CA_1
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.214065 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6266
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+[LightGBM] [Info] Start training from score 1.277963
+
+Training on CA_2
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.324325 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6064
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on CA_3
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.289724 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6530
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on CA_4
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.310912 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6003
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on TX_1
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.293631 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6360
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on TX_2
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.277279 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6445
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on TX_3
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.367868 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6374
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on WI_1
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.296042 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6027
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on WI_2
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.295297 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6271
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Training on WI_3
+[LightGBM] [Warning] Categorical features with more bins than the configured maximum bin number found.
+[LightGBM] [Warning] For categorical features, max_bin and max_bin_by_feature may be ignored with a large number of categories.
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.320598 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 6291
+[LightGBM] [Info] Number of data points in the train set: 4369217, number of used features: 35
+
+Total training time: 11.87 min
+Global model saved
+
+=== POST ANALYSIS ===
+
+Processing CA_1
+
+Processing CA_2
+
+Processing CA_3
+
+Processing CA_4
+
+Processing TX_1
+
+Processing TX_2
+
+Processing TX_3
+
+Processing WI_1
+
+Processing WI_2
+
+Processing WI_3
+
+Total time: 87.37 min
+Post-analysis global completed
+
+=== BUILD HIERARCHY ===
+Found 10 files
+Loading predictions...
+           item_id  wm_yr_wk       d  ... weekofyear store_id prediction
+0      FOODS_1_016     11101     d_1  ...          4     CA_1   1.370583
+1  HOUSEHOLD_2_151     11541  d_1745  ...         45     CA_1   0.203858
+2      FOODS_1_016     11101     d_2  ...          4     CA_1   2.939612
+3  HOUSEHOLD_2_151     11541  d_1746  ...         46     CA_1   0.136525
+4      FOODS_1_016     11101     d_3  ...          5     CA_1   1.753502
+
+[5 rows x 40 columns]
+       item_id  wm_yr_wk      d                           id  ... price_norm_item_store weekofyear store_id  prediction
+0  FOODS_1_061     11101    d_1  FOODS_1_061_CA_2_validation  ...              0.923996          4     CA_2    1.586870
+1  FOODS_3_801     11118  d_122  FOODS_3_801_CA_2_validation  ...              0.000000         22     CA_2    0.256793
+2  FOODS_1_061     11101    d_2  FOODS_1_061_CA_2_validation  ...              0.923996          4     CA_2    8.090658
+3  FOODS_3_801     11118  d_123  FOODS_3_801_CA_2_validation  ...              0.000000         22     CA_2    0.244077
+4  FOODS_1_061     11101    d_3  FOODS_1_061_CA_2_validation  ...              0.923996          5     CA_2    6.660702
+
+[5 rows x 40 columns]
+           item_id  wm_yr_wk      d  ... weekofyear store_id prediction
+0      FOODS_1_016     11101    d_1  ...          4     CA_3   1.370583
+1  HOUSEHOLD_2_456     11131  d_213  ...         35     CA_3  -0.002959
+2      FOODS_1_016     11101    d_2  ...          4     CA_3   2.357918
+3  HOUSEHOLD_2_456     11131  d_214  ...         35     CA_3   0.007024
+4      FOODS_1_016     11101    d_3  ...          5     CA_3   1.100751
+
+[5 rows x 40 columns]
+         item_id  wm_yr_wk    d                             id  ... price_norm_item_store weekofyear store_id  prediction
+0    FOODS_1_076     11101  d_1    FOODS_1_076_CA_4_validation  ...              1.019663          4     CA_4    0.366995
+1  HOBBIES_1_345     11101  d_1  HOBBIES_1_345_CA_4_validation  ...              0.970944          4     CA_4    1.277922
+2    FOODS_1_076     11101  d_2    FOODS_1_076_CA_4_validation  ...              1.019663          4     CA_4    0.867584
+3  HOBBIES_1_345     11101  d_2  HOBBIES_1_345_CA_4_validation  ...              0.970944          4     CA_4    0.083257
+4    FOODS_1_076     11101  d_3    FOODS_1_076_CA_4_validation  ...              1.019663          5     CA_4    0.776064
+
+[5 rows x 40 columns]
+         item_id  wm_yr_wk      d  ... weekofyear store_id prediction
+0    FOODS_1_013     11101    d_1  ...          4     TX_1   0.045997
+1  HOBBIES_2_004     11210  d_434  ...         14     TX_1   0.120699
+2    FOODS_1_013     11101    d_2  ...          4     TX_1   0.103639
+3  HOBBIES_2_004     11211  d_435  ...         14     TX_1   0.097505
+4    FOODS_1_013     11101    d_3  ...          5     TX_1   0.115623
+
+[5 rows x 40 columns]
+         item_id  wm_yr_wk      d  ... weekofyear store_id prediction
+0    FOODS_1_015     11101    d_1  ...          4     TX_2  -0.026077
+1  HOBBIES_1_043     11251  d_717  ...          3     TX_2   2.142334
+2    FOODS_1_015     11101    d_2  ...          4     TX_2  -0.028343
+3  HOBBIES_1_043     11251  d_718  ...          3     TX_2   1.750636
+4    FOODS_1_015     11101    d_3  ...          5     TX_2  -0.016359
+
+[5 rows x 40 columns]
+           item_id  wm_yr_wk    d  ... weekofyear store_id prediction
+0    HOBBIES_1_140     11101  d_1  ...          4     TX_3  -0.024742
+1  HOUSEHOLD_2_144     11101  d_1  ...          4     TX_3  -0.026246
+2    HOBBIES_1_140     11101  d_2  ...          4     TX_3  -0.027009
+3  HOUSEHOLD_2_144     11101  d_2  ...          4     TX_3  -0.028513
+4    HOBBIES_1_140     11101  d_3  ...          5     TX_3  -0.015025
+
+[5 rows x 40 columns]
+           item_id  wm_yr_wk      d  ... weekofyear store_id prediction
+0      FOODS_1_018     11101    d_1  ...          4     WI_1   8.978618
+1  HOUSEHOLD_1_279     11327  d_917  ...         31     WI_1   1.881731
+2      FOODS_1_018     11101    d_2  ...          4     WI_1   8.219967
+3  HOUSEHOLD_1_279     11328  d_918  ...         31     WI_1   3.065675
+4      FOODS_1_018     11101    d_3  ...          5     WI_1   8.423705
+
+[5 rows x 40 columns]
+       item_id  wm_yr_wk      d                           id  ... price_norm_item_store weekofyear store_id  prediction
+0  FOODS_1_081     11101    d_1  FOODS_1_081_WI_2_validation  ...               0.00000          4     WI_2    0.018915
+1  FOODS_3_678     11228  d_556  FOODS_3_678_WI_2_validation  ...               0.98279         32     WI_2    0.844860
+2  FOODS_1_081     11101    d_2  FOODS_1_081_WI_2_validation  ...               0.00000          4     WI_2    0.016648
+3  FOODS_3_678     11228  d_557  FOODS_3_678_WI_2_validation  ...               0.98279         32     WI_2    0.683733
+4  FOODS_1_081     11101    d_3  FOODS_1_081_WI_2_validation  ...               0.00000          5     WI_2    0.035176
+
+[5 rows x 40 columns]
+         item_id  wm_yr_wk      d  ... weekofyear store_id prediction
+0    FOODS_1_072     11101    d_1  ...          4     WI_3  -0.026077
+1  HOBBIES_1_384     11329  d_930  ...         33     WI_3   0.454371
+2    FOODS_1_072     11101    d_2  ...          4     WI_3  -0.028343
+3  HOBBIES_1_384     11329  d_931  ...         33     WI_3   0.378553
+4    FOODS_1_072     11101    d_3  ...          5     WI_3  -0.016359
+
+[5 rows x 40 columns]
+Time: 2.50 minutes
+Hierarchy built successfully
+Rows: 58767360
+
+=== MINT RECONCILIATION ===
+Loading hierarchy...
+Computing diagonal covariance...
+Applying MinT...
+MinT completed in 1.15 min
+
+=== BUILD M5 EVALUATION ===
+
+Loading M5 raw data...
+Computing RMSSE scale...
+Computing weights...
+
+Total Evaluation data built time: 1.27 min
+Evaluation data built

@@ -1,0 +1,700 @@
+
+Orden de ejecución:
+
+python run_spark_pipeline.py
+python build_m5_evaluation.py
+python run_modelo_global.py
+python run_post_analysis.py
+python build_hierarchy.py
+python run_mint_exact_top_revenue.py
+python compute_wrmsse_final.py
+
+1. run_modelo_global.py
+import pandas as pd
+import lightgbm as lgb
+import joblib
+from pathlib import Path
+import time
+import gc
+
+start_total = time.time()
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+DATA_PATH = BASE_DIR / "data" / "features" / "m5_features"
+MODEL_PATH = BASE_DIR / "models"
+MODEL_PATH.mkdir(parents=True, exist_ok=True)
+
+stores = pd.read_parquet(DATA_PATH, columns=["store_id"])["store_id"].unique().tolist()
+
+model = None
+features = None
+
+categorical_cols = [
+    "store_id", "item_id", "dept_id", "cat_id", "state_id",
+    "weekday", "event_name_1", "event_type_1",
+    "event_name_2", "event_type_2"
+]
+
+for store in stores:
+
+    print(f"\nTraining on {store}")
+
+    df = pd.read_parquet(DATA_PATH, filters=[("store_id", "==", store)])
+    df["date"] = pd.to_datetime(df["date"])
+
+    train = df[df["date"] < "2015-01-01"]
+    val = df[(df["date"] >= "2015-01-01") & (df["date"] < "2016-01-01")]
+
+    if features is None:
+        features = [c for c in df.columns if c not in ["sales", "date", "id", "d"]]
+
+    categorical_used = [c for c in categorical_cols if c in features]
+
+    X_train = train[features].copy()
+    y_train = train["sales"].copy()
+
+    X_val = val[features].copy()
+    y_val = val["sales"].copy()
+
+    for col in categorical_used:
+        X_train[col] = X_train[col].astype("category")
+        X_val[col] = X_val[col].astype("category")
+
+    if model is None:
+        model = lgb.LGBMRegressor(
+            n_estimators=600,
+            learning_rate=0.03,
+            num_leaves=96,
+            max_depth=-1,
+            min_child_samples=50,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            reg_alpha=0.1,
+            reg_lambda=0.1,
+            objective="regression",
+            n_jobs=-1,
+            random_state=42
+        )
+
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_val, y_val)],
+            eval_metric="rmse",
+            categorical_feature=categorical_used,
+            callbacks=[
+                lgb.early_stopping(stopping_rounds=50),
+                lgb.log_evaluation(period=50)
+            ]
+        )
+
+    else:
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_val, y_val)],
+            eval_metric="rmse",
+            categorical_feature=categorical_used,
+            init_model=model,
+            callbacks=[
+                lgb.early_stopping(stopping_rounds=50),
+                lgb.log_evaluation(period=50)
+            ]
+        )
+
+    del df, train, val, X_train, X_val, y_train, y_val
+    gc.collect()
+
+joblib.dump(model, MODEL_PATH / "lgbm_global.pkl")
+joblib.dump(features, MODEL_PATH / "features_global.pkl")
+joblib.dump(categorical_used, MODEL_PATH / "categorical_cols_global.pkl")
+
+end_total = time.time()
+
+print(f"\nTotal training time: {(end_total - start_total) / 60:.2f} min")
+print("Global model saved")
+2. run_post_analysis.py
+import pandas as pd
+import numpy as np
+import joblib
+from pathlib import Path
+import shap
+import time
+import gc
+
+start_total = time.time()
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+DATA_PATH = BASE_DIR / "data" / "features" / "m5_features"
+MODEL_PATH = BASE_DIR / "models"
+OUTPUT_PATH = BASE_DIR / "post_analysis"
+PRED_PATH = OUTPUT_PATH / "predictions"
+
+PRED_PATH.mkdir(parents=True, exist_ok=True)
+
+model = joblib.load(MODEL_PATH / "lgbm_global.pkl")
+features = joblib.load(MODEL_PATH / "features_global.pkl")
+categorical_cols = joblib.load(MODEL_PATH / "categorical_cols_global.pkl")
+
+stores = pd.read_parquet(DATA_PATH, columns=["store_id"])["store_id"].unique().tolist()
+
+
+def prepare_X(df):
+    X = df[features].copy()
+
+    for col in categorical_cols:
+        if col in X.columns:
+            X[col] = X[col].astype("category")
+
+    return X
+
+
+sample_parts = []
+
+for store in stores:
+
+    print(f"\nProcessing {store}")
+
+    df = pd.read_parquet(DATA_PATH, filters=[("store_id", "==", store)])
+    df["date"] = pd.to_datetime(df["date"])
+
+    X = prepare_X(df)
+
+    df["prediction"] = model.predict(X)
+    df["prediction"] = df["prediction"].clip(lower=0)
+
+    output_file = PRED_PATH / f"pred_{store}.parquet"
+    df.to_parquet(output_file, index=False)
+
+    sample_n = min(5000, len(X))
+    sample_parts.append(X.sample(n=sample_n, random_state=42))
+
+    del df, X
+    gc.collect()
+
+X_sample = pd.concat(sample_parts, ignore_index=True)
+
+if len(X_sample) > 50000:
+    X_sample = X_sample.sample(n=50000, random_state=42)
+
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X_sample)
+
+shap_final = pd.DataFrame({
+    "feature": X_sample.columns,
+    "mean_abs_shap": np.abs(shap_values).mean(axis=0)
+}).sort_values("mean_abs_shap", ascending=False)
+
+shap_final["store_id"] = "GLOBAL"
+
+shap_final.to_parquet(OUTPUT_PATH / "shap_values.parquet", index=False)
+
+end_total = time.time()
+
+print(f"\nTotal time: {(end_total - start_total) / 60:.2f} min")
+print("Post-analysis global completed")
+3. build_hierarchy.py
+
+Este corrige el problema de duplicar total y niveles agregados al procesar tienda por tienda.
+
+import glob
+import pandas as pd
+import time
+from pathlib import Path
+import gc
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+OUTPUT = BASE_DIR / "post_analysis"
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
+start_time = time.time()
+
+PRED_PATH = BASE_DIR / "post_analysis" / "predictions"
+files = glob.glob(str(PRED_PATH / "pred_*.parquet"))
+
+print(f"Found {len(files)} files")
+
+if len(files) == 0:
+    raise ValueError("No prediction files found in predictions/")
+
+
+def build_level(data, group_cols, level_name):
+    g = (
+        data
+        .groupby(group_cols + ["date"], observed=True)[["prediction", "sales"]]
+        .sum()
+        .reset_index()
+    )
+
+    for col in group_cols:
+        g[col] = g[col].astype(str)
+
+    if len(group_cols) == 1:
+        g["series_id"] = g[group_cols[0]]
+    else:
+        g["series_id"] = g[group_cols[0]]
+        for col in group_cols[1:]:
+            g["series_id"] += "_" + g[col]
+
+    g["level"] = level_name
+
+    return g[["series_id", "date", "prediction", "sales", "level"]]
+
+
+store_blocks = []
+
+for f in files:
+    print(f"\nLoading {f}")
+
+    df = pd.read_parquet(f)
+
+    needed_cols = [
+        "store_id", "item_id", "dept_id", "cat_id", "state_id",
+        "date", "prediction", "sales"
+    ]
+
+    df = df[needed_cols].copy()
+
+    for col in ["store_id", "item_id", "dept_id", "cat_id", "state_id"]:
+        df[col] = df[col].astype(str)
+
+    df["date"] = pd.to_datetime(df["date"])
+
+    store_blocks.append(df)
+
+full = pd.concat(store_blocks, ignore_index=True)
+
+del store_blocks
+gc.collect()
+
+levels = []
+
+levels.append(build_level(full, ["store_id", "item_id"], "item"))
+levels.append(build_level(full, ["store_id", "dept_id"], "dept"))
+levels.append(build_level(full, ["store_id", "cat_id"], "cat"))
+levels.append(build_level(full, ["store_id"], "store"))
+levels.append(build_level(full, ["state_id"], "state"))
+levels.append(build_level(full, ["state_id", "cat_id"], "state_cat"))
+levels.append(build_level(full, ["state_id", "dept_id"], "state_dept"))
+
+total = (
+    full
+    .groupby(["date"], observed=True)[["prediction", "sales"]]
+    .sum()
+    .reset_index()
+)
+
+total["series_id"] = "total"
+total["level"] = "total"
+
+levels.append(total[["series_id", "date", "prediction", "sales", "level"]])
+
+hierarchy = pd.concat(levels, ignore_index=True)
+
+OUTPUT_FILE = OUTPUT / "hierarchy_predictions.parquet"
+hierarchy.to_parquet(OUTPUT_FILE, index=False)
+
+end_time = time.time()
+
+print(f"Time: {(end_time - start_time) / 60:.2f} minutes")
+print("Hierarchy built successfully")
+print(f"Rows: {hierarchy.shape[0]}")
+4. Nuevo run_mint_exact_top_revenue.py
+
+Este es el importante: MinT real con matriz S y matriz W, pero solo para las series más importantes por revenue. El resto mantiene predicción base.
+
+import glob
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import time
+import gc
+
+start_time = time.time()
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+PRED_PATH = BASE_DIR / "post_analysis" / "predictions"
+HIERARCHY_PATH = BASE_DIR / "post_analysis" / "hierarchy_predictions.parquet"
+WEIGHTS_PATH = BASE_DIR / "post_analysis" / "weights.parquet"
+OUTPUT_PATH = BASE_DIR / "post_analysis" / "mint_predictions.parquet"
+
+TOP_N = 500
+VALIDATION_START = "2015-01-01"
+VALIDATION_END = "2016-01-01"
+RIDGE = 1e-6
+
+print("Loading hierarchy...")
+hierarchy = pd.read_parquet(HIERARCHY_PATH)
+
+hierarchy["date"] = pd.to_datetime(hierarchy["date"])
+hierarchy["prediction_mint"] = hierarchy["prediction"]
+
+print("Loading weights...")
+weights = pd.read_parquet(WEIGHTS_PATH)
+
+top_series = (
+    weights
+    .sort_values("weight", ascending=False)
+    .head(TOP_N)["series_id"]
+    .tolist()
+)
+
+print(f"Top series selected: {len(top_series)}")
+
+print("Loading item-level predictions for selected series...")
+
+files = glob.glob(str(PRED_PATH / "pred_*.parquet"))
+parts = []
+
+for f in files:
+    df = pd.read_parquet(f)
+
+    needed_cols = [
+        "store_id", "item_id", "dept_id", "cat_id", "state_id",
+        "date", "prediction", "sales"
+    ]
+
+    df = df[needed_cols].copy()
+
+    for col in ["store_id", "item_id", "dept_id", "cat_id", "state_id"]:
+        df[col] = df[col].astype(str)
+
+    df["date"] = pd.to_datetime(df["date"])
+
+    df["series_id"] = df["store_id"] + "_" + df["item_id"]
+
+    df = df[df["series_id"].isin(top_series)]
+
+    if len(df) > 0:
+        parts.append(df)
+
+    del df
+    gc.collect()
+
+bottom = pd.concat(parts, ignore_index=True)
+
+del parts
+gc.collect()
+
+if bottom.empty:
+    raise ValueError("No selected bottom-level series found.")
+
+bottom_series = sorted(bottom["series_id"].unique().tolist())
+n_bottom = len(bottom_series)
+
+print(f"Bottom-level series available: {n_bottom}")
+
+# =========================
+# Construcción de nodos jerárquicos sobre top series
+# =========================
+
+meta = (
+    bottom[["series_id", "store_id", "item_id", "dept_id", "cat_id", "state_id"]]
+    .drop_duplicates("series_id")
+    .set_index("series_id")
+)
+
+node_defs = []
+
+node_defs.append(("total", "total", bottom_series))
+
+for store, sids in meta.groupby("store_id").groups.items():
+    node_defs.append((store, "store", list(sids)))
+
+for state, sids in meta.groupby("state_id").groups.items():
+    node_defs.append((state, "state", list(sids)))
+
+for cat, sids in meta.groupby("cat_id").groups.items():
+    node_defs.append((cat, "cat", list(sids)))
+
+for dept, sids in meta.groupby("dept_id").groups.items():
+    node_defs.append((dept, "dept", list(sids)))
+
+for (state, cat), sids in meta.groupby(["state_id", "cat_id"]).groups.items():
+    node_defs.append((f"{state}_{cat}", "state_cat", list(sids)))
+
+for (state, dept), sids in meta.groupby(["state_id", "dept_id"]).groups.items():
+    node_defs.append((f"{state}_{dept}", "state_dept", list(sids)))
+
+for sid in bottom_series:
+    node_defs.append((sid, "item", [sid]))
+
+node_ids = [x[0] for x in node_defs]
+n_nodes = len(node_ids)
+
+print(f"Nodes in exact MinT block: {n_nodes}")
+
+bottom_index = {sid: i for i, sid in enumerate(bottom_series)}
+
+S = np.zeros((n_nodes, n_bottom), dtype=np.float64)
+
+for row_idx, (_, _, children) in enumerate(node_defs):
+    for sid in children:
+        if sid in bottom_index:
+            S[row_idx, bottom_index[sid]] = 1.0
+
+# =========================
+# Base forecasts y reales para nodos
+# =========================
+
+bottom_pred = bottom.pivot_table(
+    index="date",
+    columns="series_id",
+    values="prediction",
+    observed=True
+).fillna(0)
+
+bottom_true = bottom.pivot_table(
+    index="date",
+    columns="series_id",
+    values="sales",
+    observed=True
+).fillna(0)
+
+bottom_pred = bottom_pred.reindex(columns=bottom_series, fill_value=0)
+bottom_true = bottom_true.reindex(columns=bottom_series, fill_value=0)
+
+Y_bottom_hat = bottom_pred.values
+Y_bottom_true = bottom_true.values
+
+Y_hat_nodes = Y_bottom_hat @ S.T
+Y_true_nodes = Y_bottom_true @ S.T
+
+dates = bottom_pred.index
+
+# =========================
+# W: matriz de covarianza de errores en validación
+# =========================
+
+print("Computing W covariance matrix from validation residuals...")
+
+val_mask = (dates >= pd.Timestamp(VALIDATION_START)) & (dates < pd.Timestamp(VALIDATION_END))
+
+residuals = Y_true_nodes[val_mask, :] - Y_hat_nodes[val_mask, :]
+
+if residuals.shape[0] < 2:
+    raise ValueError("Not enough validation dates to estimate covariance matrix.")
+
+W = np.cov(residuals, rowvar=False)
+
+W = W + np.eye(W.shape[0]) * RIDGE
+
+W_inv = np.linalg.pinv(W)
+
+# =========================
+# MinT exacto:
+# y_rec = S (S' W^-1 S)^-1 S' W^-1 y_hat
+# =========================
+
+print("Applying exact MinT on selected top-revenue block...")
+
+middle = np.linalg.pinv(S.T @ W_inv @ S)
+P = S @ middle @ S.T @ W_inv
+
+Y_rec_nodes = (P @ Y_hat_nodes.T).T
+Y_rec_nodes = np.clip(Y_rec_nodes, 0, None)
+
+mint_block = pd.DataFrame(
+    Y_rec_nodes,
+    index=dates,
+    columns=node_ids
+).reset_index().melt(
+    id_vars="date",
+    var_name="series_id",
+    value_name="prediction_mint_exact"
+)
+
+# =========================
+# Mezcla con pipeline completo
+# =========================
+
+print("Merging exact MinT block with full hierarchy...")
+
+hierarchy = hierarchy.merge(
+    mint_block,
+    on=["date", "series_id"],
+    how="left"
+)
+
+hierarchy["prediction_mint"] = hierarchy["prediction_mint_exact"].combine_first(
+    hierarchy["prediction_mint"]
+)
+
+hierarchy = hierarchy.drop(columns=["prediction_mint_exact"])
+
+hierarchy[["series_id", "date", "prediction_mint"]].to_parquet(
+    OUTPUT_PATH,
+    index=False
+)
+
+end_time = time.time()
+
+print(f"Exact selective MinT completed in {(end_time - start_time) / 60:.2f} minutes")
+print(f"Output saved to: {OUTPUT_PATH}")
+5. build_m5_evaluation.py
+
+Este lo puedes dejar casi igual. Solo te lo limpio un poco.
+
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import time
+
+start_total = time.time()
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+DATA_PATH = BASE_DIR / "data" / "raw"
+OUTPUT_PATH = BASE_DIR / "post_analysis"
+OUTPUT_PATH.mkdir(exist_ok=True)
+
+print("Loading M5 raw data...")
+
+sales = pd.read_csv(DATA_PATH / "sales_train_validation.csv")
+calendar = pd.read_csv(DATA_PATH / "calendar.csv")
+prices = pd.read_csv(DATA_PATH / "sell_prices.csv")
+
+d_cols = [c for c in sales.columns if c.startswith("d_")]
+
+df = sales.melt(
+    id_vars=["item_id", "dept_id", "cat_id", "store_id", "state_id"],
+    value_vars=d_cols,
+    var_name="d",
+    value_name="sales"
+)
+
+df = df.merge(calendar[["d", "date", "wm_yr_wk"]], on="d", how="left")
+df = df.merge(prices, on=["store_id", "item_id", "wm_yr_wk"], how="left")
+
+df["sell_price"] = df["sell_price"].fillna(0)
+df["revenue"] = df["sales"] * df["sell_price"]
+df["date"] = pd.to_datetime(df["date"])
+
+train = df[df["date"] < "2016-01-01"]
+
+print("Computing RMSSE scale...")
+
+scale = (
+    train
+    .sort_values(["store_id", "item_id", "date"])
+    .groupby(["item_id", "store_id"])["sales"]
+    .apply(lambda x: np.mean(np.diff(x.values) ** 2) + 1e-8)
+    .reset_index()
+)
+
+scale["series_id"] = scale["store_id"].astype(str) + "_" + scale["item_id"].astype(str)
+scale = scale.rename(columns={"sales": "scale"})
+
+scale.to_parquet(OUTPUT_PATH / "scale.parquet", index=False)
+
+print("Computing weights...")
+
+weights = (
+    train
+    .groupby(["item_id", "store_id"])["revenue"]
+    .sum()
+    .reset_index()
+)
+
+weights["series_id"] = weights["store_id"].astype(str) + "_" + weights["item_id"].astype(str)
+
+total_revenue = weights["revenue"].sum()
+
+if total_revenue == 0:
+    raise ValueError("Total revenue is zero. Cannot compute WRMSSE weights.")
+
+weights["weight"] = weights["revenue"] / total_revenue
+
+weights.to_parquet(OUTPUT_PATH / "weights.parquet", index=False)
+
+end_total = time.time()
+
+print(f"\nTotal Evaluation data built time: {(end_total - start_total) / 60:.2f} min")
+print("Evaluation data built")
+6. compute_wrmsse_final.py
+import pandas as pd
+import numpy as np
+import time
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+start_time = time.time()
+
+print("Loading data...")
+
+pred = pd.read_parquet(
+    BASE_DIR / "post_analysis" / "mint_predictions.parquet",
+    columns=["series_id", "date", "prediction_mint"]
+)
+
+true = pd.read_parquet(
+    BASE_DIR / "post_analysis" / "hierarchy_predictions.parquet",
+    columns=["series_id", "date", "sales", "level"]
+)
+
+scale = pd.read_parquet(BASE_DIR / "post_analysis" / "scale.parquet")
+weights = pd.read_parquet(BASE_DIR / "post_analysis" / "weights.parquet")
+
+pred["date"] = pd.to_datetime(pred["date"])
+true["date"] = pd.to_datetime(true["date"])
+
+true = true[true["level"] == "item"].copy()
+
+df = pred.merge(
+    true[["series_id", "date", "sales"]],
+    on=["series_id", "date"],
+    how="inner"
+)
+
+df = df.merge(scale[["series_id", "scale"]], on="series_id", how="inner")
+df = df.merge(weights[["series_id", "weight"]], on="series_id", how="inner")
+
+print("Computing RMSSE by series...")
+
+def rmsse_group(g):
+    scale_value = g["scale"].iloc[0]
+
+    if scale_value == 0 or np.isnan(scale_value):
+        return np.nan
+
+    return np.sqrt(
+        np.mean((g["sales"].values - g["prediction_mint"].values) ** 2) / scale_value
+    )
+
+rmsse_df = (
+    df
+    .groupby("series_id")
+    .apply(rmsse_group)
+    .reset_index(name="rmsse")
+)
+
+final = rmsse_df.merge(weights[["series_id", "weight"]], on="series_id", how="inner")
+final = final.dropna(subset=["rmsse", "weight"])
+
+final["wrmsse_component"] = final["rmsse"] * final["weight"]
+
+wrmsse = final["wrmsse_component"].sum()
+mean_rmsse = final["rmsse"].mean()
+
+result_df = pd.DataFrame({
+    "metric": ["WRMSSE", "MEAN_RMSSE"],
+    "value": [wrmsse, mean_rmsse]
+})
+
+result_df.to_parquet(
+    BASE_DIR / "post_analysis" / "wrmsse_result.parquet",
+    index=False
+)
+
+final.to_parquet(
+    BASE_DIR / "post_analysis" / "wrmsse_details.parquet",
+    index=False
+)
+
+end_time = time.time()
+
+print(f"WRMSSE calculated in {(end_time - start_time) / 60:.2f} minutes")
+print("\nFINAL WRMSSE:", wrmsse)
+print("MEAN RMSSE:", mean_rmsse)
