@@ -47,7 +47,7 @@ El repositorio Git incluido en este proyecto contiene principalmente la versión
 Otras variantes experimentales intermedias (exp01_29f y exp03_35f) fueron utilizadas durante validaciones metodológicas y pruebas de estabilidad, pero no forman parte completa del repositorio final debido a simplificaciones realizadas para facilitar la organización y reproducibilidad del proyecto.
 
 
-# 3. Executar el proyecto
+# 3. Ejecutar el proyecto
 
 ## 3.1 Execución: versión Local:
 
