@@ -343,8 +343,7 @@ TFM/
      ├── environment.yml
      ├── .gitignore
      └── README.md
-  M3-kaggle/ 
-         ...
+ 
  ```
 ---
 
